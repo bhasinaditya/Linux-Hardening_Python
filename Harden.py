@@ -66,3 +66,54 @@ def step2_file_system_configuration():
     # 2.1 Create Separate Partitions - Cannot automate post-install, print warning
     print("2.1 Separate partitions should be set during installation. Check /etc/fstab manually.")
     print("Example: Add nosuid, nodev, noexec to /tmp, /var, etc.")
+
+    # 2.2 Disable Unused File Systems
+    print("2.2 Disabling unused file systems...")
+    cis_conf = '/etc/modprobe.d/CIS.conf'
+    with open(cis_conf, 'a') as f:
+        f.write("\ninstall cramfs /bin/true\n")
+        f.write("install freevxfs /bin/true\n")
+        f.write("install jffs2 /bin/true\n")
+        f.write("install hfs /bin/true\n")
+        f.write("install hfsplus /bin/true\n")
+        f.write("install squashfs /bin/true\n")
+        f.write("install udf /bin/true\n")
+
+    # 2.3 Disable Mounting of USB Storage
+    print("2.3 Disabling USB storage...")
+    usb_conf = '/etc/modprobe.d/usb-storage.conf'
+    with open(usb_conf, 'w') as f:
+        f.write("install usb-storage /bin/true\n")
+
+
+def step3_network_configuration(distro):
+    """Step 3: Network Configuration"""
+    print("\nStep 3: Network Configuration")
+
+    # 3.1 Disable Unnecessary Network Services
+    print("3.1 Disabling unnecessary services (e.g., telnet)...")
+    services = ['telnet.socket', 'rlogin', 'rsh']  # Add more if needed
+    for service in services:
+        run_command(['systemctl', 'disable', service], shell=True)
+        run_command(['systemctl', 'stop', service], shell=True)
+
+    # 3.2 Configure Hostname and DNS Settings
+    print("3.2 Configure hostname (prompting user)...")
+    hostname = input("Enter desired hostname: ")
+    with open('/etc/hostname', 'w') as f:
+        f.write(hostname + '\n')
+    # Update /etc/hosts - assume 127.0.1.1
+    with open('/etc/hosts', 'a') as f:
+        f.write(f"127.0.1.1 {hostname}\n")
+
+    # 3.3 Configure the Firewall
+    print("3.3 Configuring firewall...")
+    if distro == 'debian':
+        run_command(['apt', 'install', 'ufw', '-y'])
+        run_command(['ufw', 'allow', 'ssh'])
+        run_command(['ufw', 'enable', '-y'])
+    elif distro == 'rhel':
+        run_command(['yum', 'install', 'firewalld', '-y'])
+        run_command(['systemctl', 'start', 'firewalld'])
+        run_command(['firewall-cmd', '--permanent', '--add-service=ssh'])
+        run_command(['firewall-cmd', '--reload'])
