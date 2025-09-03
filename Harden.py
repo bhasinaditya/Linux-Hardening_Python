@@ -118,7 +118,112 @@ def step3_network_configuration(distro):
         run_command(['firewall-cmd', '--permanent', '--add-service=ssh'])
         run_command(['firewall-cmd', '--reload'])
 
+        # 3.4 Disable IPv6 if Not Needed
+        print("3.4 Disabling IPv6...")
+        with open('/etc/sysctl.conf', 'a') as f:
+            f.write("\nnet.ipv6.conf.all.disable_ipv6 = 1\n")
+            f.write("net.ipv6.conf.default.disable_ipv6 = 1\n")
+        run_command(['sysctl', '-p'])
 
+        # 3.5 Harden Network Parameters
+        print("3.5 Hardening network parameters...")
+        with open('/etc/sysctl.conf', 'a') as f:
+            f.write("\nnet.ipv4.ip_forward = 0\n")
+            f.write("net.ipv4.conf.all.send_redirects = 0\n")
+            f.write("net.ipv4.conf.default.send_redirects = 0\n")
+            f.write("net.ipv4.conf.all.accept_source_route = 0\n")
+            f.write("net.ipv4.conf.default.accept_source_route = 0\n")
+            f.write("net.ipv4.conf.all.accept_redirects = 0\n")
+            f.write("net.ipv4.conf.default.accept_redirects = 0\n")
+            f.write("net.ipv4.conf.all.log_martians = 1\n")
+            f.write("net.ipv4.conf.default.log_martians = 1\n")
+        run_command(['sysctl', '-p'])
+
+    def step4_user_authentication(distro):
+        """Step 4: User and Authentication Configurations"""
+        print("\nStep 4: User and Authentication Configurations")
+
+        # 4.1 Set Password Policies
+        print("4.1 Setting password policies...")
+        pwquality_conf = '/etc/security/pwquality.conf'
+        with open(pwquality_conf, 'a') as f:
+            f.write("\nminlen = 14\n")
+            f.write("dcredit = -1\n")
+            f.write("ucredit = -1\n")
+            f.write("lcredit = -1\n")
+            f.write("ocredit = -1\n")
+
+        # 4.2 Configure Account Lockout Policy
+        print("4.2 Configuring account lockout policy...")
+        if distro == 'debian':
+            auth_file = '/etc/pam.d/common-auth'
+        elif distro == 'rhel':
+            auth_file = '/etc/pam.d/system-auth'
+        with open(auth_file, 'a') as f:
+            f.write("\nauth required pam_tally2.so onerr=fail audit silent deny=5 unlock_time=900\n")
+
+        # 4.3 Restrict Root Login
+        print("4.3 Restricting root login via SSH...")
+        sshd_config = '/etc/ssh/sshd_config'
+        with open(sshd_config, 'a') as f:
+            f.write("\nPermitRootLogin no\n")
+        run_command(['systemctl', 'reload', 'sshd'])
+
+        # 4.4 Use SSH Key-based Authentication
+        print("4.4 Disabling password-based SSH authentication...")
+        with open(sshd_config, 'a') as f:
+            f.write("\nPasswordAuthentication no\n")
+        run_command(['systemctl', 'reload', 'sshd'])
+
+    def step5_logging_auditing(distro):
+        """Step 5: Logging and Auditing"""
+        print("\nStep 5: Logging and Auditing")
+
+        # 5.1 Enable Auditd
+        print("5.1 Enabling auditd...")
+        if distro == 'debian':
+            run_command(['apt', 'install', 'auditd', '-y'])
+        elif distro == 'rhel':
+            run_command(['yum', 'install', 'audit', '-y'])
+        run_command(['systemctl', 'enable', 'auditd'])
+        run_command(['systemctl', 'start', 'auditd'])
+
+        # 5.2 Configure Auditing for Key Events
+        print("5.2 Configuring auditing rules...")
+        audit_rules = '/etc/audit/rules.d/audit.rules'
+        with open(audit_rules, 'a') as f:
+            f.write("\n-w /etc/passwd -p wa -k passwd_changes\n")
+            f.write("-w /etc/shadow -p wa -k shadow_changes\n")
+            f.write("-w /etc/group -p wa -k group_changes\n")
+            f.write("-w /var/log/lastlog -p wa -k logins\n")
+        run_command(['systemctl', 'restart', 'auditd'])
+
+        # 5.3 Enable Logging for Important System Events
+        print("5.3 Enabling rsyslog...")
+        run_command(['yum' if distro == 'rhel' else 'apt', 'install', 'rsyslog', '-y'])
+        run_command(['systemctl', 'enable', 'rsyslog'])
+        run_command(['systemctl', 'start', 'rsyslog'])
+
+        # 5.4 Configure Log Rotation - Assume default is fine, print message
+        print("5.4 Log rotation is configured by default in /etc/logrotate.conf. Review manually.")
+
+    def step6_intrusion_detection(distro):
+        """Step 6: Intrusion Detection and File Integrity"""
+        print("\nStep 6: Intrusion Detection and File Integrity")
+
+        # 6.1 Install and Configure AIDE
+        print("6.1 Installing and configuring AIDE...")
+        if distro == 'debian':
+            run_command(['apt', 'install', 'aide', '-y'])
+        elif distro == 'rhel':
+            run_command(['yum', 'install', 'aide', '-y'])
+        run_command(['aide', '--init'])
+        run_command(['mv', '/var/lib/aide/aide.db.new.gz', '/var/lib/aide/aide.db.gz'])
+
+        # Set up cron job
+        cron_job = "0 5 * * * /usr/sbin/aide --check\n"
+        with open('/etc/crontab', 'a') as f:
+            f.write(cron_job)
         """
         -------------______________<Under Construction>______________-------------
         """
