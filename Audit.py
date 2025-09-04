@@ -317,9 +317,8 @@ if __name__ == '__main__':
     check_logging_auditing(distro)
     check_intrusion_detection(distro)
     check_security_audits(distro)
+    print("Audit complete. Review the current and recommended settings above.")
 
-    print("\nAudit complete. Review the current and recommended settings above.")
-
- """
-        -------------______________<Under Construction>______________-------------
- """
+"""
+       -------------______________<Under Construction>______________-------------
+"""

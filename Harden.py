@@ -1,8 +1,7 @@
 import os
 import sys
 import subprocess
-import platform
-import re
+
 
 def detect_distro():
     """Detect Linux distribution family (debian or rhel)."""
@@ -15,6 +14,7 @@ def detect_distro():
             return 'rhel'
     print("Unsupported distribution.")
     sys.exit(1)
+
 
 def run_command(command, shell=False):
     """Run a shell command and handle errors."""
