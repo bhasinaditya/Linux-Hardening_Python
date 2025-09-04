@@ -224,6 +224,40 @@ def step3_network_configuration(distro):
         cron_job = "0 5 * * * /usr/sbin/aide --check\n"
         with open('/etc/crontab', 'a') as f:
             f.write(cron_job)
+
+        def step7_security_audits(distro):
+            """Step 7: Security Audits and Ongoing Monitoring"""
+            print("\nStep 7: Security Audits and Ongoing Monitoring")
+
+            # 7.1 Use Lynis for Security Audits
+            print("7.1 Installing and running Lynis...")
+            if distro == 'debian':
+                run_command(['apt', 'install', 'lynis', '-y'])
+            elif distro == 'rhel':
+                run_command(['yum', 'install', 'lynis', '-y'])
+            run_command(['lynis', 'audit', 'system'])
+
+            # 7.2 Monitoring Tools - Optional, print message
+            print("7.2 Install monitoring tools like Prometheus, Telegraf, Grafana manually as needed.")
+
+        if __name__ == '__main__':
+            if os.geteuid() != 0:
+                print("This script must be run as root.")
+                sys.exit(1)
+
+            distro = detect_distro()
+            print(f"Detected distribution: {distro.upper()}")
+
+            step1_initial_setup(distro)
+            step2_file_system_configuration()
+            step3_network_configuration(distro)
+            step4_user_authentication(distro)
+            step5_logging_auditing(distro)
+            step6_intrusion_detection(distro)
+            step7_security_audits(distro)
+
+            print("\nHardening complete. Review changes and reboot if necessary.")
+
         """
         -------------______________<Under Construction>______________-------------
         """
