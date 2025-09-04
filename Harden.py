@@ -2,6 +2,11 @@ import os
 import sys
 import subprocess
 
+"""
+TODO: Review testing
+"""
+
+
 
 def detect_distro():
     """Detect Linux distribution family (debian or rhel)."""
